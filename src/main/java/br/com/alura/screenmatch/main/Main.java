@@ -1,5 +1,6 @@
 package br.com.alura.screenmatch.main;
 
+import br.com.alura.screenmatch.model.Episode;
 import br.com.alura.screenmatch.model.EpisodeData;
 import br.com.alura.screenmatch.model.SeasonData;
 import br.com.alura.screenmatch.model.SeriesData;
@@ -8,10 +9,7 @@ import br.com.alura.screenmatch.service.DataConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Main {
@@ -50,19 +48,32 @@ public class Main {
 
         episodesData.stream()
                 .filter(e -> !e.rating().equalsIgnoreCase("N/A"))
-                .peek(e -> System.out.println("First filter (N/a)"))
+                .peek(e -> System.out.println("First filter (N/a)" + e))
                 .sorted(Comparator.comparing(EpisodeData::rating).reversed())
                 .peek(e -> System.out.println("Ordering " + e))
                 .limit(5)
-                .peek(e -> System.out.println("limiting (N/a)"))
+                .peek(e -> System.out.println("limiting " + e))
                 .forEach(System.out::println);
 
-//        List<Episode> episodes = seasons.stream()
-//                .flatMap(t -> t.episodes().stream()
-//                        .map(d -> new Episode(t.numberOfSeason(), d))
-//                ).collect(Collectors.toList());
-//
-//        episodes.forEach(System.out::println);
+
+        List<Episode> episodes = seasons.stream()
+                .flatMap(t -> t.episodes().stream()
+                        .map(d -> new Episode(t.numberOfSeason(), d))
+                ).collect(Collectors.toList());
+
+        episodes.forEach(System.out::println);
+
+        System.out.println("Search for episode by title");
+        var typedTitle = sc.nextLine();
+        Optional<Episode> episodeSearched = episodes.stream()
+                .filter(e -> e.getTitle().toUpperCase().contains(typedTitle.toUpperCase()))
+                .findFirst();
+        if (episodeSearched.isPresent()) {
+            System.out.println("Episode found");
+            System.out.println("Season: " + episodeSearched.get().getSeason());
+        } else {
+            System.out.println("Episode not found");
+        }
 //
 //        System.out.println("Inform an year: ");
 //        var year = sc.nextInt();
@@ -77,6 +88,17 @@ public class Main {
 //                .forEach(e -> System.out.println(
 //                        "Season: " + e.getSeason() + "Episode: " + e.getEpisodeNumber() + "Release year: " + e.getReleaseDate().format(formatter)
 //                ));
+        Map<Integer, Double> seasonRating = episodes.stream()
+                .filter(e -> e.getRating() > 0.0)
+                .collect(Collectors.groupingBy(Episode::getSeason, Collectors.averagingDouble(Episode::getRating)));
+        System.out.println(seasonRating);
 
+        DoubleSummaryStatistics est = episodes.stream()
+                .filter(e -> e.getRating() > 0.0)
+                .collect(Collectors.summarizingDouble(Episode::getRating));
+        System.out.println("Average: " + est.getAverage());
+        System.out.println("Best rating: " + est.getMax());
+        System.out.println("Worst rating: " + est.getMin());
+        System.out.println("Number of episodes: " + est.getCount());
     }
 }
